@@ -10,8 +10,8 @@ using namespace std;
 #include <fcntl.h>
 #include <limits.h>
 // Added by me:
-//#include <sys/types.h>
-//#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 // End of addition.
 #include "sockets.h"
 

@@ -13,7 +13,7 @@ using namespace std;
 #include "logstream.h"
 #include "sockets.h"
 // Added by me:
-//#include <signal.h>
+#include <signal.h>
 
 
 logstream log (cout);

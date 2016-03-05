@@ -17,7 +17,7 @@ using namespace std;
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-/*
+
 #ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0
 #endif
@@ -25,7 +25,7 @@ using namespace std;
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 255
 #endif
-*/
+
 //
 // class base_socket:
 // mostly protected and not used by applications
