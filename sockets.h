@@ -1,4 +1,5 @@
 // $Id: sockets.h,v 1.1 2015-05-12 18:48:40-07 - - $
+// base_socket: accepted; client; server
 
 #ifndef __SOCKET_H__
 #define __SOCKET_H__
@@ -29,14 +30,17 @@ using namespace std;
 //
 // class base_socket:
 // mostly protected and not used by applications
-//
+// Inheritance: but no virtual fcns.
 
 class base_socket {
    private:
       static constexpr size_t MAXRECV = 0xFFFF;
+    // We need a special flag (-1) here to know if socket is
+    // closed.
       static constexpr int CLOSED_FD = -1;
       int socket_fd {CLOSED_FD};
       sockaddr_in socket_addr;
+    // delete: b/c u can't copy file by copy ctor or assignment=
       base_socket (const base_socket&) = delete; // prevent copying
       base_socket& operator= (const base_socket&) = delete;
    protected:
@@ -74,7 +78,7 @@ class accepted_socket: public base_socket {
 //
 // class client_socket
 // used by client application to connect to server
-//
+// can send, recv msgs. and close the socket.
 
 class client_socket: public base_socket {
    public: 

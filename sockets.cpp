@@ -20,12 +20,15 @@ base_socket::base_socket() {
 }
 
 base_socket::~base_socket() {
-   if (socket_fd != CLOSED_FD) close();
+    // close() is the mbr.
+    // fcn., not the sys. fcn.
+    if (socket_fd != CLOSED_FD) close();
 }
 
-// member function close()
 void base_socket::close() {
     // :: close() means the global std lib close().
+    // here close() is C Lib.
+    // Std. fcn. "::" is just for clarification.
    int status = ::close (socket_fd);
    if (status < 0) throw socket_sys_error ("close("
                          + to_string(socket_fd) + ")");
@@ -70,7 +73,7 @@ void base_socket::listen() const {
 // Once the socket is listening to, we want to accept.
 void base_socket::accept (base_socket& socket) const {
     // Should be "size_t" not "int".
-   int addr_length = sizeof socket.socket_addr;
+   /*int*/ size_t addr_length = sizeof socket.socket_addr;
    socket.socket_fd = ::accept (socket_fd,
                 reinterpret_cast<sockaddr*> (&socket.socket_addr),
                 reinterpret_cast<socklen_t*> (&addr_length));

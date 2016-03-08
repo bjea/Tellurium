@@ -9,6 +9,7 @@ using namespace std;
 #include <libgen.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fstream>
 
 #include "protocol.h"
 #include "logstream.h"
@@ -19,9 +20,40 @@ struct cix_exit: public exception {};
 
 unordered_map<string,cix_command> command_map {
    {"exit", CIX_EXIT},
+   {"get" , CIX_GET },
    {"help", CIX_HELP},
    {"ls"  , CIX_LS  },
 };
+
+void cix_get(client_socket& server, string& filename)
+{
+   cix_header header;
+   header.command = CIX_GET;
+   size_t n = filename.length();
+   size_t found = filename.find("/");
+   if (n > 58 || found != string::npos)
+   {
+      CIX_ERROR;   // ??? TO-DO!
+   }
+   strcpy(header.filename, filename.c_str());
+   header.filename[n] = '\0';
+   log << "sending header " << header << endl;
+   send_packet (server, &header, sizeof header);
+   recv_packet (server, &header, sizeof header);
+   log << "received header " << header << endl;
+   if (header.command != CIX_FILE) {
+      log << "sent CIX_GET, server did not return CIX_FILE" << endl;
+      log << "server returned " << header << endl;
+   }else {
+      char buffer[header.nbytes + 1];
+      recv_packet (server, buffer, header.nbytes);
+      log << "received " << header.nbytes << " bytes" << endl;
+      buffer[header.nbytes] = '\0';
+      cout << buffer; // TO-DO: write buffer to file.
+   }
+
+
+}
 
 void cix_help() {
    static vector<string> help = {
@@ -54,6 +86,8 @@ void cix_ls (client_socket& server) {
    }
 }
 
+
+
 
 void usage() {
    cerr << "Usage: " << log.execname() << " [host] [port]" << endl;
@@ -84,6 +118,7 @@ int main (int argc, char** argv) {
             case CIX_EXIT:
                throw cix_exit();
                break;
+
             case CIX_HELP:
                cix_help();
                break;

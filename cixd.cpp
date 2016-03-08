@@ -14,11 +14,59 @@ using namespace std;
 #include "sockets.h"
 // Added by me:
 #include <signal.h>
+#include <fstream>
 
 
 logstream log (cout);
 struct cix_exit: public exception {};
 
+void reply_get (accepted_socket& client_sock, cix_header& header)
+{
+   string fileName(header.filename);
+   ifstream file (fileName, ifstream::binary);
+   if (file)
+   {
+      file.seekg (0, file.end);
+      int length = file.tellg();
+      file.seekg(0, file.beg);
+      file.seekg(0, file.beg);
+
+      char* buffer = new char [length];
+      log << "Reading " << length << " characters." << endl;
+      file.read(buffer, length);
+
+      /*if (file)
+      {
+         log << "All characters read successfully." << endl;
+      }
+      else
+      {
+         log << "Error: only " << file.gcount()
+         << " characters were read." << endl;
+      }*/
+      file.close();
+
+      //send_packet(server, buffer, sizeof buffer);
+      string file_content(buffer);
+      header.command = CIX_FILE;
+      header.nbytes = file_content.size();
+      //memset (header.filename, 0, FILENAME_SIZE);
+      log << "sending header " << header << endl;
+      send_packet (client_sock, &header, sizeof header);
+      send_packet (client_sock, file_content.c_str(), file_content.size());
+      log << "sent " << file_content.size() << " bytes" << endl;
+   }
+   else
+   {
+      log << "get filename: open failed: " << strerror (errno) << endl;
+      header.command = CIX_NAK;
+      header.nbytes = errno;
+      send_packet (client_sock, &header, sizeof header);
+
+   }
+}
+
+// Working? (somewhere adding "return"?)
 void reply_ls (accepted_socket& client_sock, cix_header& header) {
    const char* ls_cmd = "ls -l 2>&1";
    FILE* ls_pipe = popen (ls_cmd, "r");
@@ -49,7 +97,9 @@ void reply_ls (accepted_socket& client_sock, cix_header& header) {
    log << "sent " << ls_output.size() << " bytes" << endl;
 }
 
-
+// Most of the work should be done here, all the log is for debugging
+// purposes, not really doing anything.
+// Add switch cases: ls, put, rm.
 void run_server (accepted_socket& client_sock) {
    log.execname (log.execname() + "-server");
    log << "connected to " << to_string (client_sock) << endl;
@@ -62,6 +112,8 @@ void run_server (accepted_socket& client_sock) {
             case CIX_LS: 
                reply_ls (client_sock, header);
                break;
+            case CIX_PUT:
+
             default:
                log << "invalid header from client" << endl;
                log << "cix_nbytes = " << header.nbytes << endl;
@@ -79,6 +131,7 @@ void run_server (accepted_socket& client_sock) {
    throw cix_exit();
 }
 
+// Working. Program u r running is bash
 void fork_cixserver (server_socket& server, accepted_socket& accept) {
    pid_t pid = fork();
    if (pid == 0) { // child
@@ -95,18 +148,22 @@ void fork_cixserver (server_socket& server, accepted_socket& accept) {
    }
 }
 
-
+// what does it do? waitpid: any children, the daemon doesn't care,
+// it does ls and then quits. WNOHANG: if no unread children, don't
+// do anything, just come back.
 void reap_zombies() {
    for (;;) {
       int status;
       pid_t child = waitpid (-1, &status, WNOHANG);
       if (child <= 0) break;
       log << "child " << child
-          << " exit " << (status >> 8)
+          << " exit " << (status >> 8) // set core status to 8
           << " signal " << (status & 0x7F)
           << " core " << (status >> 7 & 1) << endl;
    }
 }
+// Size of "core" file is usually set to 0 b/c it's usu. easier to
+// debug by running it again; "core" is like postmortem method.
 
 void signal_handler (int signal) {
    log << "signal_handler: caught " << strsignal (signal) << endl;
@@ -133,6 +190,7 @@ int main (int argc, char** argv) {
    try {
       server_socket listener (port);
       for (;;) {
+         // hostinfo() returns hostname.
          log << to_string (hostinfo()) << " accepting port "
              << to_string (port) << endl;
          accepted_socket client_sock;
