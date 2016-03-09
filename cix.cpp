@@ -25,7 +25,7 @@ unordered_map<string,cix_command> command_map {
    {"ls"  , CIX_LS  },
 };
 
-void cix_get(client_socket& server, string& filename)
+void cix_get (client_socket& server, string& filename)
 {
    cix_header header;
    header.command = CIX_GET;
@@ -49,7 +49,19 @@ void cix_get(client_socket& server, string& filename)
       recv_packet (server, buffer, header.nbytes);
       log << "received " << header.nbytes << " bytes" << endl;
       buffer[header.nbytes] = '\0';
-      cout << buffer; // TO-DO: write buffer to file.
+      //cout << buffer; // TO-DO: write buffer to file.
+      ofstream out_file (filename, ofstream::binary);
+      //out_file.open(filename);
+      //if (out_file.is_open())
+      //{
+         //out_file << buffer; // TO-DO: write buffer to file.
+      out_file.write(buffer, header.nbytes);
+      out_file.close();
+      //}
+      /*else
+      {
+         log << "Unable to open file: " << filename << endl;
+      }*/
    }
 
 
@@ -86,7 +98,74 @@ void cix_ls (client_socket& server) {
    }
 }
 
+void cix_put (client_socket& server, string& filename)
+{
+   cix_header header;
+   header.command = CIX_PUT;
+   size_t n = filename.length();
+   size_t found = filename.find("/");
+   if (n > 58 || found != string::npos)
+   {
+      CIX_ERROR;   // ??? TO-DO!
+   }
 
+   ifstream file (filename, ifstream::binary);
+   if (file) {
+      strcpy(header.filename, filename.c_str());
+      header.filename[n] = '\0';
+      file.seekg(0, file.end);
+      long size = file.tellg();
+      file.seekg(0, file.beg); // Or file.seekg(0); ?
+      //file.seekg(0, file.beg);
+
+      char *buffer = new char[size];
+      log << "Reading " << size << " characters." << endl;
+      file.read(buffer, size);
+      log << "sending header " << header << endl;
+      header.nbytes = size;
+      //send_packet(server, &header, sizeof header);
+      send_packet(server, &header, size);
+
+      send_packet(server, buffer, sizeof buffer);
+      //header.command = CIX_FILE;
+      //header.nbytes = size;
+      //memset (header.filename, 0, FILENAME_SIZE);
+/*
+      const long FIXED_SIZE = 1024;
+      if (size > FIXED_SIZE)
+      {
+         long i = 0;
+         do {
+            char* buffer_temp = new char[FIXED_SIZE];
+            for (; i < FIXED_SIZE and i < size; ++i) {
+               buffer_temp[i] = buffer[i];
+            }
+
+            send_packet(server, buffer_temp, sizeof buffer_temp);
+            log << "sent " << sizeof buffer_temp
+                << " bytes" << endl;
+         } while (i < size);
+      }
+      else
+      {
+         send_packet(server, buffer, sizeof buffer);
+         log << "sent " << size << " bytes" << endl;
+      }
+*/
+
+      delete[] buffer;
+      file.close();
+   }
+   else
+   {
+      log << "put filename: " << filename << " open failed: "
+          << strerror (errno) << endl;
+      //header.command = CIX_NAK;
+      header.nbytes = errno;
+      CIX_ERROR;   // ??? TO-DO!
+   }
+
+}
 
 
 void usage() {

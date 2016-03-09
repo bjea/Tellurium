@@ -27,13 +27,13 @@ void reply_get (accepted_socket& client_sock, cix_header& header)
    if (file)
    {
       file.seekg (0, file.end);
-      int length = file.tellg();
-      file.seekg(0, file.beg);
-      file.seekg(0, file.beg);
+      long size = file.tellg();
+      file.seekg(0, file.beg); // Or file.seekg(0); ?
+      //file.seekg(0, file.beg);
 
-      char* buffer = new char [length];
-      log << "Reading " << length << " characters." << endl;
-      file.read(buffer, length);
+      char* buffer = new char [size];
+      log << "Reading " << size << " characters." << endl;
+      file.read(buffer, size);
 
       /*if (file)
       {
@@ -44,17 +44,19 @@ void reply_get (accepted_socket& client_sock, cix_header& header)
          log << "Error: only " << file.gcount()
          << " characters were read." << endl;
       }*/
-      file.close();
+
 
       //send_packet(server, buffer, sizeof buffer);
-      string file_content(buffer);
+      //string file_content(buffer);
       header.command = CIX_FILE;
-      header.nbytes = file_content.size();
+      header.nbytes = size;
       //memset (header.filename, 0, FILENAME_SIZE);
       log << "sending header " << header << endl;
       send_packet (client_sock, &header, sizeof header);
-      send_packet (client_sock, file_content.c_str(), file_content.size());
-      log << "sent " << file_content.size() << " bytes" << endl;
+      send_packet (client_sock, buffer, sizeof buffer);
+      log << "sent " << size << " bytes" << endl;
+      delete[] buffer;
+      file.close();
    }
    else
    {
@@ -97,6 +99,24 @@ void reply_ls (accepted_socket& client_sock, cix_header& header) {
    log << "sent " << ls_output.size() << " bytes" << endl;
 }
 
+void reply_put (accepted_socket& client_sock, cix_header& header)
+{
+   char buffer[header.nbytes + 1];
+   // How to know the size of rcv'd packet?
+   recv_packet (client_sock, buffer, header.nbytes);
+   log << "received " << header.nbytes << " bytes" << endl;
+   buffer[header.nbytes] = '\0';
+   // TO-DO: write buffer to file.
+   ofstream out_file (header.filename, ofstream::binary);
+   //out_file.open(filename);
+   //if (out_file.is_open())
+   //{
+   //out_file << buffer; // TO-DO: write buffer to file.
+   out_file.write(buffer, header.nbytes);
+   out_file.close();
+
+}
+
 // Most of the work should be done here, all the log is for debugging
 // purposes, not really doing anything.
 // Add switch cases: ls, put, rm.
@@ -109,7 +129,9 @@ void run_server (accepted_socket& client_sock) {
          recv_packet (client_sock, &header, sizeof header);
          log << "received header " << header << endl;
          switch (header.command) {
-            case CIX_LS: 
+            case CIX_GET:
+               reply_get(client_sock, header);
+            case CIX_LS:
                reply_ls (client_sock, header);
                break;
             case CIX_PUT:
