@@ -10,6 +10,7 @@ using namespace std;
 #include <sys/types.h>
 #include <unistd.h>
 #include <fstream>
+//#include <sstream>
 
 #include "protocol.h"
 #include "logstream.h"
@@ -23,6 +24,8 @@ unordered_map<string,cix_command> command_map {
    {"get" , CIX_GET },
    {"help", CIX_HELP},
    {"ls"  , CIX_LS  },
+   {"put" , CIX_PUT },
+   {"rm"  , CIX_RM  },
 };
 
 void cix_get (client_socket& server, string& filename)
@@ -64,6 +67,11 @@ void cix_get (client_socket& server, string& filename)
       }*/
    }
 
+
+}
+void cix_error()
+{
+   log << "invalid header" << endl;
 
 }
 
@@ -140,7 +148,6 @@ void cix_put (client_socket& server, string& filename)
             for (; i < FIXED_SIZE and i < size; ++i) {
                buffer_temp[i] = buffer[i];
             }
-
             send_packet(server, buffer_temp, sizeof buffer_temp);
             log << "sent " << sizeof buffer_temp
                 << " bytes" << endl;
@@ -152,9 +159,14 @@ void cix_put (client_socket& server, string& filename)
          log << "sent " << size << " bytes" << endl;
       }
 */
-
       delete[] buffer;
       file.close();
+      recv_packet (server, &header, sizeof header);
+      log << "received header " << header << endl;
+      if (header.command != CIX_ACK) {
+         log << "sent CIX_PUT, server did not return CIX_ACK" << endl;
+         log << "server returned " << header << endl;
+      }
    }
    else
    {
@@ -167,6 +179,27 @@ void cix_put (client_socket& server, string& filename)
 
 }
 
+void cix_rm (client_socket& server, string& filename)
+{
+   cix_header header;
+   header.command = CIX_RM;
+   size_t n = filename.length();
+   size_t found = filename.find("/");
+   if (n > 58 || found != string::npos)
+   {
+      CIX_ERROR;   // ??? TO-DO!
+   }
+   strcpy(header.filename, filename.c_str());
+   header.filename[n] = '\0';
+   log << "sending header " << header << endl;
+   send_packet (server, &header, sizeof header);
+   recv_packet (server, &header, sizeof header);
+   log << "received header " << header << endl;
+   if (header.command != CIX_ACK) {
+      log << "sent CIX_RM, server did not return CIX_ACK" << endl;
+      log << "server returned " << header << endl;
+   }
+}
 
 void usage() {
    cerr << "Usage: " << log.execname() << " [host] [port]" << endl;
@@ -190,6 +223,15 @@ int main (int argc, char** argv) {
          getline (cin, line);
          if (cin.eof()) throw cix_exit();
          log << "command " << line << endl;
+         string cmd_str, filename;
+
+         if (size_t pos = line.find(' ') != string::npos)
+         {
+            cmd_str = line.substr(0, pos);
+            filename = line.substr(pos + 1);
+            line = cmd_str;
+         }
+
          const auto& itor = command_map.find (line);
          cix_command cmd = itor == command_map.end()
                          ? CIX_ERROR : itor->second;
@@ -197,13 +239,21 @@ int main (int argc, char** argv) {
             case CIX_EXIT:
                throw cix_exit();
                break;
-
+            case CIX_GET:
+               cix_get(server, filename);
+                 break;
             case CIX_HELP:
                cix_help();
                break;
             case CIX_LS:
                cix_ls (server);
                break;
+            case CIX_PUT:
+               cix_put(server, filename);
+                 break;
+            case CIX_RM:
+               cix_rm(server, filename);
+                 break;
             default:
                log << line << ": invalid command" << endl;
                break;

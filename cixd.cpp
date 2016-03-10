@@ -114,7 +114,32 @@ void reply_put (accepted_socket& client_sock, cix_header& header)
    //out_file << buffer; // TO-DO: write buffer to file.
    out_file.write(buffer, header.nbytes);
    out_file.close();
+   header.command = CIX_ACK;
+   memset (header.filename, 0, FILENAME_SIZE);
+   header.nbytes = 0;
+   log << "sending header " << header << endl;
+   send_packet (client_sock, &header, sizeof header);
+}
 
+void reply_rm (accepted_socket& client_sock, cix_header& header)
+{
+   int rc = unlink(header.filename);
+   if (rc < 0)
+   {
+      log << "rm filename: " << header.filename << " failed: "
+          << strerror(errno) << endl;
+      header.command = CIX_NAK;
+      header.nbytes = errno;
+      send_packet (client_sock, &header, sizeof header);
+   }
+   else
+   {
+      header.command = CIX_ACK;
+      //header.nbytes = 0;
+      memset (header.filename, 0, FILENAME_SIZE);
+      log << "sending header " << header << endl;
+      send_packet (client_sock, &header, sizeof header);
+   }
 }
 
 // Most of the work should be done here, all the log is for debugging
@@ -131,11 +156,16 @@ void run_server (accepted_socket& client_sock) {
          switch (header.command) {
             case CIX_GET:
                reply_get(client_sock, header);
+                 break;
             case CIX_LS:
                reply_ls (client_sock, header);
                break;
             case CIX_PUT:
-
+               reply_put(client_sock, header);
+                 break;
+            case CIX_RM:
+               reply_rm(client_sock, header);
+                 break;
             default:
                log << "invalid header from client" << endl;
                log << "cix_nbytes = " << header.nbytes << endl;
