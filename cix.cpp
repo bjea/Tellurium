@@ -36,7 +36,9 @@ void cix_get (client_socket& server, string& filename)
    size_t found = filename.find("/");
    if (n > 58 || found != string::npos)
    {
-      CIX_ERROR;   // ??? TO-DO!
+      //CIX_ERROR;   // ??? TO-DO!
+      log << "filename error" << endl;
+      return;
    }
    strcpy(header.filename, filename.c_str());
    header.filename[n] = '\0';
@@ -67,11 +69,6 @@ void cix_get (client_socket& server, string& filename)
       }*/
    }
 
-
-}
-void cix_error()
-{
-   log << "invalid header" << endl;
 
 }
 
@@ -114,7 +111,9 @@ void cix_put (client_socket& server, string& filename)
    size_t found = filename.find("/");
    if (n > 58 || found != string::npos)
    {
-      CIX_ERROR;   // ??? TO-DO!
+      //CIX_ERROR;   // ??? TO-DO!
+      log << "filename error" << endl;
+      return;
    }
 
    ifstream file (filename, ifstream::binary);
@@ -127,7 +126,7 @@ void cix_put (client_socket& server, string& filename)
       //file.seekg(0, file.beg);
 
       char *buffer = new char[size];
-      log << "Reading " << size << " characters." << endl;
+      //log << "Reading " << size << " characters." << endl;
       file.read(buffer, size);
       log << "sending header " << header << endl;
       header.nbytes = size;
@@ -170,11 +169,11 @@ void cix_put (client_socket& server, string& filename)
    }
    else
    {
-      log << "put filename: " << filename << " open failed: "
-          << strerror (errno) << endl;
+      log << "put filename: " << filename << " open failed "
+          /*<< strerror (errno)*/ << endl;
+      // ??? TO-DO!
       //header.command = CIX_NAK;
-      header.nbytes = errno;
-      CIX_ERROR;   // ??? TO-DO!
+      //header.nbytes = errno;
    }
 
 }
@@ -187,7 +186,9 @@ void cix_rm (client_socket& server, string& filename)
    size_t found = filename.find("/");
    if (n > 58 || found != string::npos)
    {
-      CIX_ERROR;   // ??? TO-DO!
+      //CIX_ERROR;   // ??? TO-DO!
+      log << "filename error" << endl;
+      return;
    }
    strcpy(header.filename, filename.c_str());
    header.filename[n] = '\0';
