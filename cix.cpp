@@ -226,7 +226,9 @@ int main (int argc, char** argv) {
          log << "command " << line << endl;
          string cmd_str, filename;
 
-         if (size_t pos = line.find(' ') != string::npos)
+	 size_t pos = line.find(' ');
+         
+	 if (pos != string::npos)
          {
             cmd_str = line.substr(0, pos);
             filename = line.substr(pos + 1);
