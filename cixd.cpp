@@ -53,7 +53,9 @@ void reply_get (accepted_socket& client_sock, cix_header& header)
       //memset (header.filename, 0, FILENAME_SIZE);
       log << "sending header " << header << endl;
       send_packet (client_sock, &header, sizeof header);
-      send_packet (client_sock, buffer, size);
+      if(size) {
+         send_packet(client_sock, buffer, size);
+      }
       log << "sent " << size << " bytes" << endl;
       delete[] buffer;
       file.close();
@@ -103,8 +105,10 @@ void reply_put (accepted_socket& client_sock, cix_header& header)
 {
    char buffer[header.nbytes + 1];
    // How to know the size of rcv'd packet?
-   recv_packet (client_sock, buffer, header.nbytes);
-   log << "received " << header.nbytes << " bytes" << endl;
+   if(header.nbytes) {
+      recv_packet(client_sock, buffer, header.nbytes);
+      log << "received " << header.nbytes << " bytes" << endl;
+   }
    buffer[header.nbytes] = '\0';
    // TO-DO: write buffer to file.
    ofstream out_file (header.filename, ofstream::binary);

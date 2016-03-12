@@ -51,8 +51,11 @@ void cix_get (client_socket& server, string& filename)
       log << "server returned " << header << endl;
    }else {
       char buffer[header.nbytes + 1];
-      recv_packet (server, buffer, header.nbytes);
-      log << "received " << header.nbytes << " bytes" << endl;
+      if(header.nbytes) {
+         recv_packet (server, buffer, header.nbytes);
+         log << "received " << header.nbytes << " bytes" << endl;
+      }
+
       buffer[header.nbytes] = '\0';
       //cout << buffer; // TO-DO: write buffer to file.
       ofstream out_file (filename, ofstream::binary);
@@ -125,15 +128,20 @@ void cix_put (client_socket& server, string& filename)
       file.seekg(0, file.beg); // Or file.seekg(0); ?
       //file.seekg(0, file.beg);
 
-      char *buffer = new char[size];
+
       //log << "Reading " << size << " characters." << endl;
-      file.read(buffer, size);
+
       log << "sending header " << header << endl;
       header.nbytes = size;
       //send_packet(server, &header, sizeof header);
       send_packet(server, &header, sizeof header);
 
-      send_packet(server, buffer, size);
+      if(size) {
+         char *buffer = new char[size];
+         file.read(buffer, size);
+         send_packet(server, buffer, size);
+         delete[] buffer;
+      }
       //header.command = CIX_FILE;
       //header.nbytes = size;
       //memset (header.filename, 0, FILENAME_SIZE);
@@ -158,7 +166,7 @@ void cix_put (client_socket& server, string& filename)
          log << "sent " << size << " bytes" << endl;
       }
 */
-      delete[] buffer;
+
       file.close();
       recv_packet (server, &header, sizeof header);
       log << "received header " << header << endl;
