@@ -29,28 +29,14 @@ void reply_get (accepted_socket& client_sock, cix_header& header)
       file.seekg (0, file.end);
       long size = file.tellg();
       file.seekg(0, file.beg); // Or file.seekg(0); ?
-      //file.seekg(0, file.beg);
 
       char* buffer = new char [size];
       log << "Reading " << size << " characters." << endl;
       file.read(buffer, size);
 
-      /*if (file)
-      {
-         log << "All characters read successfully." << endl;
-      }
-      else
-      {
-         log << "Error: only " << file.gcount()
-         << " characters were read." << endl;
-      }*/
-
-
-      //send_packet(server, buffer, sizeof buffer);
-      //string file_content(buffer);
       header.command = CIX_FILE;
       header.nbytes = size;
-      //memset (header.filename, 0, FILENAME_SIZE);
+
       log << "sending header " << header << endl;
       send_packet (client_sock, &header, sizeof header);
       if(size) {
@@ -62,7 +48,8 @@ void reply_get (accepted_socket& client_sock, cix_header& header)
    }
    else
    {
-      log << "get filename: open failed: " << strerror (errno) << endl;
+      log << "get " << fileName << ": open failed: "
+          << strerror (errno) << endl;
       header.command = CIX_NAK;
       header.nbytes = errno;
       send_packet (client_sock, &header, sizeof header);
@@ -104,18 +91,13 @@ void reply_ls (accepted_socket& client_sock, cix_header& header) {
 void reply_put (accepted_socket& client_sock, cix_header& header)
 {
    char buffer[header.nbytes + 1];
-   // How to know the size of rcv'd packet?
    if(header.nbytes) {
       recv_packet(client_sock, buffer, header.nbytes);
       log << "received " << header.nbytes << " bytes" << endl;
    }
    buffer[header.nbytes] = '\0';
-   // TO-DO: write buffer to file.
    ofstream out_file (header.filename, ofstream::binary);
-   //out_file.open(filename);
-   //if (out_file.is_open())
-   //{
-   //out_file << buffer; // TO-DO: write buffer to file.
+   // Write buffer to file.
    out_file.write(buffer, header.nbytes);
    out_file.close();
    header.command = CIX_ACK;

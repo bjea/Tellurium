@@ -10,7 +10,6 @@ using namespace std;
 #include <sys/types.h>
 #include <unistd.h>
 #include <fstream>
-//#include <sstream>
 
 #include "protocol.h"
 #include "logstream.h"
@@ -36,7 +35,6 @@ void cix_get (client_socket& server, string& filename)
    size_t found = filename.find("/");
    if (n > 58 || found != string::npos)
    {
-      //CIX_ERROR;   // ??? TO-DO!
       log << "filename error" << endl;
       return;
    }
@@ -46,10 +44,13 @@ void cix_get (client_socket& server, string& filename)
    send_packet (server, &header, sizeof header);
    recv_packet (server, &header, sizeof header);
    log << "received header " << header << endl;
-   if (header.command != CIX_FILE) {
+   if (header.command != CIX_FILE)
+   {
       log << "sent CIX_GET, server did not return CIX_FILE" << endl;
       log << "server returned " << header << endl;
-   }else {
+   }
+   else
+   {
       char buffer[header.nbytes + 1];
       if(header.nbytes) {
          recv_packet (server, buffer, header.nbytes);
@@ -57,22 +58,11 @@ void cix_get (client_socket& server, string& filename)
       }
 
       buffer[header.nbytes] = '\0';
-      //cout << buffer; // TO-DO: write buffer to file.
+      // Write buffer to file.
       ofstream out_file (filename, ofstream::binary);
-      //out_file.open(filename);
-      //if (out_file.is_open())
-      //{
-         //out_file << buffer; // TO-DO: write buffer to file.
       out_file.write(buffer, header.nbytes);
       out_file.close();
-      //}
-      /*else
-      {
-         log << "Unable to open file: " << filename << endl;
-      }*/
    }
-
-
 }
 
 void cix_help() {
@@ -114,7 +104,6 @@ void cix_put (client_socket& server, string& filename)
    size_t found = filename.find("/");
    if (n > 58 || found != string::npos)
    {
-      //CIX_ERROR;   // ??? TO-DO!
       log << "filename error" << endl;
       return;
    }
@@ -126,14 +115,10 @@ void cix_put (client_socket& server, string& filename)
       file.seekg(0, file.end);
       long size = file.tellg();
       file.seekg(0, file.beg); // Or file.seekg(0); ?
-      //file.seekg(0, file.beg);
-
 
       //log << "Reading " << size << " characters." << endl;
-
       log << "sending header " << header << endl;
       header.nbytes = size;
-      //send_packet(server, &header, sizeof header);
       send_packet(server, &header, sizeof header);
 
       if(size) {
@@ -142,48 +127,26 @@ void cix_put (client_socket& server, string& filename)
          send_packet(server, buffer, size);
          delete[] buffer;
       }
-      //header.command = CIX_FILE;
-      //header.nbytes = size;
-      //memset (header.filename, 0, FILENAME_SIZE);
-/*
-      const long FIXED_SIZE = 1024;
-      if (size > FIXED_SIZE)
-      {
-         long i = 0;
-         do {
-            char* buffer_temp = new char[FIXED_SIZE];
-            for (; i < FIXED_SIZE and i < size; ++i) {
-               buffer_temp[i] = buffer[i];
-            }
-            send_packet(server, buffer_temp, sizeof buffer_temp);
-            log << "sent " << sizeof buffer_temp
-                << " bytes" << endl;
-         } while (i < size);
-      }
-      else
-      {
-         send_packet(server, buffer, sizeof buffer);
-         log << "sent " << size << " bytes" << endl;
-      }
-*/
 
       file.close();
       recv_packet (server, &header, sizeof header);
       log << "received header " << header << endl;
-      if (header.command != CIX_ACK) {
-         log << "sent CIX_PUT, server did not return CIX_ACK" << endl;
-         log << "server returned " << header << endl;
+      if (header.command == CIX_NAK) {
+         log << "sent CIX_PUT, server sent CIX_NAK for fail"
+             << endl;
+         cerr << "put " << filename << " failed: "
+              << "server returned CIX_NAK" << endl;
+      }
+      if (header.command == CIX_ACK)
+      {
+         cout << "put " << filename << " succeeded: "
+              << "server returned CIX_ACK" << endl;
       }
    }
    else
    {
-      log << "put filename: " << filename << " open failed "
-          /*<< strerror (errno)*/ << endl;
-      // ??? TO-DO!
-      //header.command = CIX_NAK;
-      //header.nbytes = errno;
+      log << "put filename: " << filename << " open failed" << endl;
    }
-
 }
 
 void cix_rm (client_socket& server, string& filename)
@@ -194,7 +157,6 @@ void cix_rm (client_socket& server, string& filename)
    size_t found = filename.find("/");
    if (n > 58 || found != string::npos)
    {
-      //CIX_ERROR;   // ??? TO-DO!
       log << "filename error" << endl;
       return;
    }
