@@ -53,7 +53,7 @@ void reply_get (accepted_socket& client_sock, cix_header& header)
       //memset (header.filename, 0, FILENAME_SIZE);
       log << "sending header " << header << endl;
       send_packet (client_sock, &header, sizeof header);
-      send_packet (client_sock, buffer, sizeof buffer);
+      send_packet (client_sock, buffer, size);
       log << "sent " << size << " bytes" << endl;
       delete[] buffer;
       file.close();

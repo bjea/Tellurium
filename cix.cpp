@@ -131,9 +131,9 @@ void cix_put (client_socket& server, string& filename)
       log << "sending header " << header << endl;
       header.nbytes = size;
       //send_packet(server, &header, sizeof header);
-      send_packet(server, &header, size);
+      send_packet(server, &header, sizeof header);
 
-      send_packet(server, buffer, sizeof buffer);
+      send_packet(server, buffer, size);
       //header.command = CIX_FILE;
       //header.nbytes = size;
       //memset (header.filename, 0, FILENAME_SIZE);
