@@ -145,7 +145,7 @@ void cix_put (client_socket& server, string& filename)
    }
    else
    {
-      log << "put filename: " << filename << " open failed" << endl;
+      log << "put " << filename << " open failed" << endl;
    }
 }
 
@@ -195,10 +195,8 @@ int main (int argc, char** argv) {
          if (cin.eof()) throw cix_exit();
          log << "command " << line << endl;
          string cmd_str, filename;
-
-	 size_t pos = line.find(' ');
-         
-	 if (pos != string::npos)
+         size_t pos = line.find(' ');
+         if (pos != string::npos)
          {
             cmd_str = line.substr(0, pos);
             filename = line.substr(pos + 1);
